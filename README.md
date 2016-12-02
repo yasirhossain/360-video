@@ -1,2 +1,3 @@
-# 360-video
-360 Video Proof of Concept
+# Text Track Renderer
+
+Module for Rendering Text Tracks
