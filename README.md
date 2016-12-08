@@ -1,3 +1,3 @@
-# Text Track Renderer
+# 360 Video Proof of Concept
 
-Module for Rendering Text Tracks
+ES6 Module for 360 Video Interactivity
