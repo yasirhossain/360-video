@@ -1,6 +1,6 @@
 import ThreeSixty from './threesixty'
 
-let d = document.getElementById('360Video')
+let d = document.getElementById('360VideoView')
 
 const detector = {
   canvas: !! window.CanvasRenderingContext2D,
@@ -48,8 +48,8 @@ const detector = {
 }
 
 const ts = new ThreeSixty()
-ts.init(THREE, detector, window, document, undefined)
-ts.attach(d)
+//ts.init(THREE, detector, window, document, undefined)
+ts.attach(d, detector)
 
 /*
 const defaultLoader = () => {
