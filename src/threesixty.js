@@ -1,7 +1,10 @@
-import THREE from './three.min'
+import THREE from './three'
 
 const ThreeSixty = () => {
-  let div,
+  let element,
+      video,
+      object,
+      Detector,
       pluginName = "Valiant360",
       plugin, // will hold reference to instantiated Plugin
       defaults = {
@@ -38,6 +41,28 @@ const ThreeSixty = () => {
     return out
   }
 
+  const hasClass = (el, className) => {
+    if (el.classList)
+      return el.classList.contains(className)
+    else
+      return !!el.className.match(new RegExp('(\\s|^)' + className + '(\\s|$)'))
+  }
+
+  const addClass = (el, className) => {
+    if (el.classList)
+      el.classList.add(className)
+    else if (!hasClass(el, className)) el.className += " " + className
+  }
+
+  const removeClass = (el, className) => {
+    if (el.classList)
+      el.classList.remove(className)
+    else if (hasClass(el, className)) {
+      var reg = new RegExp('(\\s|^)' + className + '(\\s|$)')
+      el.className=el.className.replace(reg, ' ')
+    }
+  }
+
   const generateUUID = () => {
     var d = new Date().getTime();
     var uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
@@ -50,152 +75,151 @@ const ThreeSixty = () => {
 
   const createMediaPlayer = () => {
     // make a self reference we can pass to our callbacks
-    var self = this;
+    let self = object
 
     // create a local THREE.js scene
-    this._scene = new THREE.Scene();
+    object.scene = new THREE.Scene()
 
     // create ThreeJS camera
-    this._camera = new THREE.PerspectiveCamera(this._fov, $(this.element).width() / $(this.element).height(), 0.1, 1000);
-    this._camera.setLens(this._fov);
+    object.camera = new THREE.PerspectiveCamera(object.fov, element.width / element.height, 0.1, 1000)
+    object.camera.setLens(object.fov)
 
     // create ThreeJS renderer and append it to our object
-    this._renderer = Detector.webgl? new THREE.WebGLRenderer(): new THREE.CanvasRenderer();
-    this._renderer.setSize( $(this.element).width(), $(this.element).height() );
-    this._renderer.autoClear = false;
-    this._renderer.setClearColor( 0x333333, 1 );
+    object.renderer = Detector.webgl? new THREE.WebGLRenderer(): new THREE.CanvasRenderer()
+    object.renderer.setSize( element.width, element.height )
+    object.renderer.autoClear = false
+    object.renderer.setClearColor( 0x333333, 1 )
 
     // append the rendering element to this div
-    $(this.element).append(this._renderer.domElement);
+    element.innerHTML += object.renderer.domElement
 
-    var createAnimation = function () {
-      self._texture.generateMipmaps = false;
-      self._texture.minFilter = THREE.LinearFilter;
-      self._texture.magFilter = THREE.LinearFilter;
-      self._texture.format = THREE.RGBFormat;
+    let createAnimation = () => {
+      self.texture.generateMipmaps = false
+      self.texture.minFilter = THREE.LinearFilter
+      self.texture.magFilter = THREE.LinearFilter
+      self.texture.format = THREE.RGBFormat
 
       // create ThreeJS mesh sphere onto which our texture will be drawn
-      self._mesh = new THREE.Mesh( new THREE.SphereGeometry( 500, 80, 50 ), new THREE.MeshBasicMaterial( { map: self._texture } ) );
-      self._mesh.scale.x = -1; // mirror the texture, since we're looking from the inside out
-      self._scene.add(self._mesh);
+      self.mesh = new THREE.Mesh(new THREE.SphereGeometry( 500, 80, 50 ), new THREE.MeshBasicMaterial({ map: self.texture }))
+      self.mesh.scale.x = -1 // mirror the texture, since we're looking from the inside out
+      self.scene.add(self.mesh)
 
-      self.animate();
-    };
-
-    // figure out our texturing situation, based on what our source is
-    if( $(this.element).attr('data-photo-src') ) {
-      this._isPhoto = true;
-      THREE.ImageUtils.crossOrigin = this.options.crossOrigin;
-      this._texture = THREE.ImageUtils.loadTexture( $(this.element).attr('data-photo-src') );
-      createAnimation();
-    } else {
-      this._isVideo = true;
+      animate()
     }
 
+    // figure out our texturing situation, based on what our source is
+    if(element.getAttribute('data-photo-src')) {
+      object.isPhoto = true
+      THREE.ImageUtils.crossOrigin = object.options.crossOrigin
+      object.texture = THREE.ImageUtils.loadTexture(element.getAttribute('data-photo-src'))
+      createAnimation()
+    } else
+      object.isVideo = true
+
     // create loading overlay
-    var loadingHTML =
+    const loadingHTML =
       `<div class="loading">
         <div class="icon waiting-icon"></div>
         <div class="icon error-icon"><i class="fa fa-exclamation-triangle" aria-hidden="true"></i></div>
       </div>`
 
-    $(this.element).append(loadingHTML);
-    this.showWaiting();
+    element.innerHTML += loadingHTML
+    showWaiting()
 
     // create off-dom video player
-    this._video = document.createElement( 'video' );
-    this._video.setAttribute('crossorigin', this.options.crossOrigin);
-    this._video.style.display = 'none';
-    $(this.element).append( this._video );
-    this._video.loop = this.options.loop;
-    this._video.muted = this.options.muted;
-    this._video.volume = this.options.volume;
+    object.video = `<video style="display: none;"></video>`
+    //object.video.setAttribute('crossorigin', object.options.crossOrigin)
+    element.innerHTML += object.video
+    //object.video.loop = object.options.loop
+    //object.video.muted = object.options.muted
+    //object.video.volume = object.options.volume
+
+    video = element.querySelectorAll('video')[0]
 
     // attach video player event listeners
-    this._video.addEventListener("ended", function() {
-    });
+    video.addEventListener("ended", () => {})
 
     // Progress Meter
-    this._video.addEventListener("progress", function() {
-      var percent = null;
+    video.addEventListener("progress", () => {
+      let percent = null
 
-      if (self._video && self._video.buffered && self._video.buffered.length > 0 && self._video.buffered.end && self._video.duration) {
-          percent = self._video.buffered.end(0) / self._video.duration;
-      }
+      if (self.video && self.video.buffered && self.video.buffered.length > 0 && self.video.buffered.end && self.video.duration)
+        percent = self.video.buffered.end(0) / self._ideo.duration
 
       // Some browsers (e.g., FF3.6 and Safari 5) cannot calculate target.bufferered.end()
       // to be anything other than 0. If the byte count is available we use this instead.
       // Browsers that support the else if do not seem to have the bufferedBytes value and
       // should skip to there. Tested in Safari 5, Webkit head, FF3.6, Chrome 6, IE 7/8.
-      else if (self._video && self._video.bytesTotal !== undefined && self._video.bytesTotal > 0 && self._video.bufferedBytes !== undefined) {
-          percent = self._video.bufferedBytes / self._video.bytesTotal;
+      else if (self.video && self.video.bytesTotal !== undefined && self.video.bytesTotal > 0 && self.video.bufferedBytes !== undefined) {
+        percent = self.video.bufferedBytes / self.video.bytesTotal
       }
 
       // Someday we can have a loading animation for videos
-      var cpct = Math.round(percent * 100);
+      const cpct = Math.round(percent * 100)
 
-      if(cpct === 100) {
-          // do something now that we are done
+      if (cpct === 100) {
+        // do something now that we are done
       } else {
-          // do something with this percentage info (cpct)
+        // do something with this percentage info (cpct)
       }
     });
 
     // Error listener
-    this._video.addEventListener('error', function (event) {
-      console.error(self._video.error);
+    video.addEventListener('error', (event) => {
+      console.error(self.video.error);
       self.showError();
     });
 
-    this._video.addEventListener("timeupdate", function() {
-      if (this.paused === false) {
-        var percent = this.currentTime * 100 / this.duration;
+    video.addEventListener("timeupdate", () => {
+      if (object.paused === false) {
+        let percent = object.currentTime * 100 / object.duration;
 
-        $(self.element).find('.controlsWrapper > .valiant-progress-bar')[0].children[0].setAttribute("style", "width:" + percent + "%;");
-        $(self.element).find('.controlsWrapper > .valiant-progress-bar')[0].children[1].setAttribute("style", "width:" + (100 - percent) + "%;");
+        element.querySelectorAll('valiant-progress-bar')[0].children[0].setAttribute("style", "width:" + percent + "%;");
+        element.querySelectorAll('.valiant-progress-bar')[0].children[1].setAttribute("style", "width:" + (100 - percent) + "%;");
         //Update time label
-        var durMin = Math.floor(this.duration / 60);
-        var durSec = Math.floor(this.duration - (durMin * 60));
-        var timeMin = Math.floor(this.currentTime / 60);
-        var timeSec = Math.floor(this.currentTime - (timeMin * 60));
-        var duration = durMin + ':' + (durSec < 10 ? '0' + durSec : durSec);
-        var currentTime = timeMin + ':' + (timeSec < 10 ? '0' + timeSec : timeSec);
-        $(self.element).find('.controls .timeLabel').html(currentTime+' / '+duration);
+        let durMin = Math.floor(object.duration / 60);
+        let durSec = Math.floor(object.duration - (durMin * 60));
+        let timeMin = Math.floor(object.currentTime / 60);
+        let timeSec = Math.floor(object.currentTime - (timeMin * 60));
+        let duration = durMin + ':' + (durSec < 10 ? '0' + durSec : durSec);
+        let currentTime = timeMin + ':' + (timeSec < 10 ? '0' + timeSec : timeSec);
+        element.querySelectorAll('.controls .timeLabel')[0].innerHTML = (currentTime+' / '+ duration);
       }
     });
 
     // IE 11 and previous not supports THREE.Texture([video]), we must create a canvas that draws the video and use that to create the Texture
-    var isIE = navigator.appName == 'Microsoft Internet Explorer' || !!(navigator.userAgent.match(/Trident/) || navigator.userAgent.match(/rv 11/));
+    const isIE = navigator.appName ==  'Microsoft Internet Explorer' || !!(navigator.userAgent.match(/Trident/) || navigator.userAgent.match(/rv 11/));
     if (isIE) {
-      this._videocanvas = document.createElement('canvas');
-      this._texture = new THREE.Texture(this._videocanvas);
+      object.videocanvas = document.createElement('canvas');
+      object.texture = new THREE.Texture(object.videocanvas);
       // set canvas size = video size when known
-      this._video.addEventListener('loadedmetadata', function () {
-        self._videocanvas.width = self._video.videoWidth;
-        self._videocanvas.height = self._video.videoHeight;
+      video.addEventListener('loadedmetadata', function () {
+        self.videocanvas.width = self.video.videoWidth;
+        self.videocanvas.height = self.video.videoHeight;
         createAnimation();
       });
     } else {
-      this._texture = new THREE.Texture( this._video );
+      object.texture = new THREE.Texture( object.video );
     }
 
     //force browser caching of the video to solve rendering errors with big videos
     var xhr = new XMLHttpRequest();
-    xhr.open('GET', $(this.element).attr('data-video-src'), true);
+    xhr.open('GET', element.getAttribute('data-video-src'), true);
     xhr.responseType = 'blob';
     xhr.onload = function(e) {
       if (this.status === 200) {
         var vid = (window.webkitURL ? webkitURL : URL).createObjectURL(this.response);
         //Video Play Listener, fires after video loads
-        $(self._video).bind("canplaythrough", function() {
+        video.addEventListener("canplaythrough", () => {
+          console.log(self)
           if (self.options.autoplay === true) {
             self.hideWaiting();
             self.play();
-            self._videoReady = true;
+            self.videoReady = true;
           }
         });
         // set the video src and begin loading
-        self._video.src = vid;
+        video.src = vid;
       }
     };
 
@@ -217,9 +241,10 @@ const ThreeSixty = () => {
 
   // creates div and buttons for onscreen video controls
   const createControls = () => {
-    var muteControl = this.options.muted ? 'fa-volume-off' : 'fa-volume-up'
-    var playPauseControl = this.options.autoplay ? 'fa-pause' : 'fa-play'
-    var controlsHTML = `
+    let muteControl = object.options.muted ? 'fa-volume-off' : 'fa-volume-up',
+        playPauseControl = object.options.autoplay ? 'fa-pause' : 'fa-play'
+
+    const controlsHTML = `
       <div class="controlsWrapper">
         <div class="valiant-progress-bar">
           <div style="width: 0;"></div>
@@ -241,16 +266,16 @@ const ThreeSixty = () => {
         </div>
       </div>`
 
-    $(this.element).append(controlsHTML, true);
-    $(this.element).append('<div class="timeTooltip">00:00</div>', true);
+    element.innerHTML += controlsHTML
+    element.innerHTML += '<div class="timeTooltip">00:00</div>'
 
     // hide controls if option is set
-    if(this.options.hideControls) {
-      $(this.element).find('.controls').hide();
+    if(object.options.hideControls) {
+      element.querySelectorAll('.controls')[0].style.display = 'none'
     }
 
     // wire up controller events to dom elements
-    this.attachControlEvents();
+    attachControlEvents()
   }
 
   const attachControlEvents = () => {
@@ -517,50 +542,51 @@ const ThreeSixty = () => {
 
   const animate = () => {
     // set our animate function to fire next time a frame is ready
-    this._requestAnimationId = requestAnimationFrame( this.animate.bind(this) );
+    // object.requestAnimationId = requestAnimationFrame(object.animate.bind(object));
 
-    if( this._isVideo ) {
-      if ( this._video.readyState === this._video.HAVE_ENOUGH_DATA) {
-        if(this._videocanvas) {
-          this._videocanvas.getContext('2d').drawImage(this._video, 0, 0, this._videocanvas.width, this._videocanvas.height);
+    if(object.isVideo) {
+      if (video.readyState === video.HAVE_ENOUGH_DATA) {
+        if(object.videocanvas) {
+          object.videocanvas.getContext('2d').drawImage(video, 0, 0, object.videocanvas.width, object.videocanvas.height);
         }
-        if(typeof(this._texture) !== "undefined" ) {
-          var ct = new Date().getTime();
-          if(ct - this._time >= 30) {
-            this._texture.needsUpdate = true;
-            this._time = ct;
+        if(typeof(object.texture) !== "undefined" ) {
+          let ct = new Date().getTime();
+          if(ct - object.time >= 30) {
+            object.texture.needsUpdate = true;
+            object.time = ct;
           }
         }
       }
     }
 
-    this.render();
+    render()
   }
 
   const render = () => {
-    this._lat = Math.max( - 85, Math.min( 85, this._lat ) );
-    this._phi = ( 90 - this._lat ) * Math.PI / 180;
-    this._theta = this._lon * Math.PI / 180;
+    object.lat = Math.max( - 85, Math.min( 85, object.lat ) );
+    object.phi = ( 90 - object.lat ) * Math.PI / 180;
+    object.theta = object.lon * Math.PI / 180;
 
-    var cx = 500 * Math.sin( this._phi ) * Math.cos( this._theta );
-    var cy = 500 * Math.cos( this._phi );
-    var cz = 500 * Math.sin( this._phi ) * Math.sin( this._theta );
+    let cx = 500 * Math.sin( object.phi ) * Math.cos( object.theta ),
+        cy = 500 * Math.cos( object.phi ),
+        cz = 500 * Math.sin( object.phi ) * Math.sin( object.theta )
 
-    this._camera.lookAt(new THREE.Vector3(cx, cy, cz));
+    object.camera.lookAt(new THREE.Vector3(cx, cy, cz))
 
     // distortion
-    if(this.options.flatProjection) {
-        this._camera.position.x = 0;
-        this._camera.position.y = 0;
-        this._camera.position.z = 0;
+    if(object.options !== undefined) {
+    //if(object.options.flatProjection !== undefined) {
+      object.camera.position.x = 0
+      object.camera.position.y = 0
+      object.camera.position.z = 0
     } else {
-        this._camera.position.x = - cx;
-        this._camera.position.y = - cy;
-        this._camera.position.z = - cz;
+      object.camera.position.x = - cx
+      object.camera.position.y = - cy
+      object.camera.position.z = - cz
     }
 
-    this._renderer.clear();
-    this._renderer.render( this._scene, this._camera );
+    object.renderer.clear()
+    object.renderer.render(object.scene, object.camera)
   }
 
   // Video specific functions, exposed to controller
@@ -589,70 +615,75 @@ const ThreeSixty = () => {
     this._texture = THREE.ImageUtils.loadTexture( photoFile );
   }
 
+  // done
   const fullscreen = () => {
-    if($(this.element).find('a.fa-expand').length > 0) {
-      this.resizeGL(screen.width, screen.height);
+    if(element.querySelectorAll('.fa-expand')[0].length > 0) {
+      object.resizeGL(screen.width, screen.height);
 
-      $(this.element).addClass('fullscreen');
-      $(this.element).find('a.fa-expand').removeClass('fa-expand').addClass('fa-compress');
+      addClass(element, 'fullscreen')
 
-      this._isFullscreen = true;
+      removeClass(element.querySelectorAll('.fa-expand')[0], 'fa-expand')
+      addClass(element.querySelectorAll('.fa-expand')[0], 'fa-compress')
+
+      object.isFullscreen = true;
     } else {
-      this.resizeGL(this._originalWidth, this._originalHeight);
+      object.resizeGL(object.originalWidth, object.originalHeight);
 
-      $(this.element).removeClass('fullscreen');
-      $(this.element).find('a.fa-compress').removeClass('fa-compress').addClass('fa-expand');
+      removeClass(element, 'fullscreen')
+      removeClass(element.querySelectorAll('.fa-compress')[0], 'fa-compress')
+      addClass(element.querySelectorAll('.fa-compress')[0], 'fa-expand')
 
-      this._isFullscreen = false;
+      object.isFullscreen = false;
     }
   }
 
+  // done
   const resizeGL = (w, h) => {
-    this._renderer.setSize(w, h);
-    this._camera.aspect = w / h;
-    this._camera.updateProjectionMatrix();
+    object.renderer.setSize(w, h);
+    object.camera.aspect = w / h;
+    object.camera.updateProjectionMatrix();
   }
 
+  // done
   const showWaiting = () => {
-    var loading = $(this.element).find('.loading');
-    loading.find('.waiting-icon').show();
-    loading.find('.error-icon').hide();
-    loading.show();
+    let loading = element.querySelectorAll('.loading')[0]
+    loading.querySelectorAll('.waiting-icon')[0].style.display = ''
+    loading.querySelectorAll('.error-icon')[0].style.display = 'none'
+    loading.style.display = ''
   }
 
+  // done
   const hideWaiting = () => {
-    $(this.element).find('.loading').hide();
+    element.querySelectorAll('.loading')[0].style.display = 'none'
   }
 
+  // done
   const showError = () => {
-    var loading = $(this.element).find('.loading');
-    loading.find('.waiting-icon').hide();
-    loading.find('.error-icon').show();
-    loading.show();
+    let loading = element.querySelectorAll('.loading')[0];
+    loading.querySelectorAll('.waiting-icon')[0].style.display = 'none'
+    loading.querySelectorAll('.error-icon')[0].style.display = ''
+    loading.style.display = ''
   }
 
   const destroy = () => {
-    window.cancelAnimationFrame(this._requestAnimationId);
-    this._requestAnimationId = '';
-    this._texture.dispose();
-    this._scene.remove(this._mesh);
-    if(this._isVideo) {
-        this.unloadVideo();
+    window.cancelAnimationFrame(object.requestAnimationId);
+    object.requestAnimationId = '';
+    object.texture.dispose();
+    object.scene.remove(object.mesh);
+    if(object.isVideo) {
+      unloadVideo();
     }
     $(this._renderer.domElement).remove();
   }
 
   const attach = (el, detector) => {
+    Detector = detector
     if (el.tagName) {
-      let element = el,
-          object = {}
-
-      //element.options = element.extend({}, defaults, options)
+      element = el
+      object = {options: {}}
 
       object.defaults = defaults
       object.name = pluginName
-
-      console.dir(object)
 
       // Place initialization logic here
       // You already have access to the DOM element and
@@ -695,9 +726,8 @@ const ThreeSixty = () => {
         element.setAttribute("tabindex", "3")
       */
 
-      console.log(element)
-      //createMediaPlayer()
-      //createControls()
+      createMediaPlayer()
+      createControls()
     }
     else
       console.log(`${div} is not an HTML div container`)

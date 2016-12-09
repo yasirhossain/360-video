@@ -1,6 +1,6 @@
 import ThreeSixty from './threesixty'
 
-let d = document.getElementById('360VideoView')
+let d = document.getElementById('360Video')
 
 const detector = {
   canvas: !! window.CanvasRenderingContext2D,
