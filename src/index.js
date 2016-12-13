@@ -49,7 +49,9 @@ const detector = {
 
 const ts = new ThreeSixty()
 //ts.init(THREE, detector, window, document, undefined)
-ts.attach(d, detector)
+ts.attach(d, detector, document, window)
+//$("#Valiant360").Valiant360()
+//$("#Valiant360").Valiant360('play')
 
 /*
 const defaultLoader = () => {

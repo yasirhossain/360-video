@@ -137,8 +137,6 @@ three.js r65 or higher
         // the default options for future instances of the plugin
         this.options = $.extend( {}, defaults, options) ;
 
-        console.log(options)
-
         this._defaults = defaults;
         this._name = pluginName;
 
@@ -177,8 +175,8 @@ three.js r65 or higher
 
             // add a class to our element so it inherits the appropriate styles
             $(this.element).addClass('Valiant360_default');
-
-			// add tabindex attribute to enable the focus on the element (required for keyboard controls)
+			
+			// add tabindex attribute to enable the focus on the element (required for keyboard controls)  
 			if(this.options.keyboardControls && !$(this.element).attr("tabindex")){
 				$(this.element).attr("tabindex", "1");
 			}
@@ -199,7 +197,7 @@ three.js r65 or higher
         },
 
         createMediaPlayer: function() {
-
+			
 			// make a self reference we can pass to our callbacks
             var self = this;
 
@@ -218,7 +216,7 @@ three.js r65 or higher
 
             // append the rendering element to this div
             $(this.element).append(this._renderer.domElement);
-
+			
 			var createAnimation = function () {
                 self._texture.generateMipmaps = false;
 				self._texture.minFilter = THREE.LinearFilter;
@@ -241,15 +239,15 @@ three.js r65 or higher
 				createAnimation();
             } else {
                 this._isVideo = true;
-
+				
 				// create loading overlay
 				var loadingHTML =  '<div class="loading"> \
 										<div class="icon waiting-icon"></div> \
 										<div class="icon error-icon"><i class="fa fa-exclamation-triangle" aria-hidden="true"></i></div> \
 									</div>';
-                $(this.element).append(loadingHTML);
+                $(this.element).append(loadingHTML);				
 				this.showWaiting();
-
+				
                 // create off-dom video player
                 this._video = document.createElement( 'video' );
                 this._video.setAttribute('crossorigin', this.options.crossOrigin);
@@ -291,7 +289,7 @@ three.js r65 or higher
                     console.error(self._video.error);
                     self.showError();
                 });
-
+				
 				this._video.addEventListener("timeupdate", function() {
                     if (this.paused === false){
                         var percent = this.currentTime * 100 / this.duration;
@@ -307,7 +305,7 @@ three.js r65 or higher
 						$(self.element).find('.controls .timeLabel').html(currentTime+' / '+duration);
                     }
                 });
-
+				
 				// IE 11 and previous not supports THREE.Texture([video]), we must create a canvas that draws the video and use that to create the Texture
 				var isIE = navigator.appName == 'Microsoft Internet Explorer' || !!(navigator.userAgent.match(/Trident/) || navigator.userAgent.match(/rv 11/));
 				if (isIE) {
@@ -412,7 +410,7 @@ three.js r65 or higher
             this.element.addEventListener( 'touchstart', this.onMouseDown.bind(this), false);
             this.element.addEventListener( 'mouseup', this.onMouseUp.bind(this), false);
             this.element.addEventListener( 'touchend', this.onMouseUp.bind(this), false);
-
+			
 			if(this.options.keyboardControls){
 				this.element.addEventListener('keydown',this.onKeyDown.bind(this), false);
                 this.element.addEventListener('keyup',this.onKeyUp.bind(this), false);
@@ -487,7 +485,7 @@ three.js r65 or higher
 				.mouseup(this.onVolumeMouseUp.bind(this))
 				.mouseleave(this.onVolumeMouseUp.bind(this))
 				.mousemove(this.onVolumeMouseMove.bind(this));
-
+			
 			$(this._video).on('volumechange',this.onVolumeChange.bind(this));
         },
 
@@ -558,7 +556,7 @@ three.js r65 or higher
                 this._video.currentTime = this._video.duration * percent / 100;
             }
         },
-
+		
 		onProgressMouseMove: function(event){
 			var percent =  this.relativeX / $(this.element).find('canvas').width() * 100;
 			if(percent){
@@ -573,7 +571,7 @@ three.js r65 or higher
 				tooltip.html(timeMin + ':' + (timeSec < 10 ? '0' + timeSec : timeSec));
 			}
 		},
-
+		
 		onProgressMouseOut: function (event) {
 			$(this.element).find('.timeTooltip').hide();
 		},
@@ -581,7 +579,7 @@ three.js r65 or higher
         onMouseUp: function(event) {
             this._mouseDown = false;
         },
-
+		
 		onKeyDown: function(event) {
 		   var keyCode = event.keyCode;
 		   if (keyCode >= 37 && keyCode <= 40) {
@@ -592,7 +590,7 @@ three.js r65 or higher
 			   this.element.dispatchEvent(pressEvent);
 		   }
 		},
-
+		
 		onKeyUp: function (event) {
 		   var keyCode = event.keyCode;
 		   if (keyCode >= 37 && keyCode <= 40) {
@@ -600,7 +598,7 @@ three.js r65 or higher
 			   this._keydown = false;
 		   }
 		},
-
+		
 		onKeyArrowPress: function (event) {
 		   if (this._keydown) {
 			   var keyCode = event.detail? event.detail.keyCode:null;
@@ -630,18 +628,18 @@ three.js r65 or higher
 			   pressDelay);
 		   }
 	    },
-
+		
 		onVolumeMouseDown: function(event){
 			event.preventDefault();
 			this._volumeMouseDown = true;
 			this.onVolumeMouseMove(event);
 		},
-
+		
 		onVolumeMouseUp: function(event){
 			event.preventDefault();
 			this._volumeMouseDown = false;
 		},
-
+		
 		onVolumeMouseMove: function(event){
 			event.preventDefault();
 			if(this._volumeMouseDown){
@@ -652,12 +650,12 @@ three.js r65 or higher
 				}
 			}
 		},
-
+		
 		onVolumeChange: function(event){
 			//change volume cursor value
-			var percent = this._video.muted==true && !this._volumeMouseDown? 0:(this._video.volume * 100);
+			var percent = this._video.muted==true && !this._volumeMouseDown? 0:(this._video.volume * 100);			
 			$(this.element).find('.controlsWrapper .volumeControl > .volumeBar').css({width: percent+"%"});
-
+			
 			//change mute button
 			var muteButton = $(this.element).find(".muteButton");
 			if((percent>0 && muteButton.hasClass('fa-volume-off')) || (percent==0 && muteButton.hasClass('fa-volume-up'))){
@@ -760,7 +758,7 @@ three.js r65 or higher
             this._camera.aspect = w / h;
             this._camera.updateProjectionMatrix();
         },
-
+		
 		showWaiting: function () {
 			var loading = $(this.element).find('.loading');
             loading.find('.waiting-icon').show();

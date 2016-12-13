@@ -5,6 +5,8 @@ const ThreeSixty = () => {
       video,
       object,
       Detector,
+      document,
+      window,
       pluginName = "Valiant360",
       plugin, // will hold reference to instantiated Plugin
       defaults = {
@@ -91,7 +93,7 @@ const ThreeSixty = () => {
     object.renderer.setClearColor( 0x333333, 1 )
 
     // append the rendering element to this div
-    element.innerHTML += object.renderer.domElement
+    element.appendChild(object.renderer.domElement)
 
     let createAnimation = () => {
       self.texture.generateMipmaps = false
@@ -127,90 +129,26 @@ const ThreeSixty = () => {
     showWaiting()
 
     // create off-dom video player
-    object.video = `<video style="display: none;"></video>`
+    //object.video = `<video style="display: none;"></video>`
     //object.video.setAttribute('crossorigin', object.options.crossOrigin)
-    element.innerHTML += object.video
+    //element.innerHTML += object.video
     //object.video.loop = object.options.loop
     //object.video.muted = object.options.muted
     //object.video.volume = object.options.volume
 
-    video = element.querySelectorAll('video')[0]
-
-    // attach video player event listeners
-    video.addEventListener("ended", () => {})
-
-    // Progress Meter
-    video.addEventListener("progress", () => {
-      let percent = null
-
-      if (self.video && self.video.buffered && self.video.buffered.length > 0 && self.video.buffered.end && self.video.duration)
-        percent = self.video.buffered.end(0) / self._ideo.duration
-
-      // Some browsers (e.g., FF3.6 and Safari 5) cannot calculate target.bufferered.end()
-      // to be anything other than 0. If the byte count is available we use this instead.
-      // Browsers that support the else if do not seem to have the bufferedBytes value and
-      // should skip to there. Tested in Safari 5, Webkit head, FF3.6, Chrome 6, IE 7/8.
-      else if (self.video && self.video.bytesTotal !== undefined && self.video.bytesTotal > 0 && self.video.bufferedBytes !== undefined) {
-        percent = self.video.bufferedBytes / self.video.bytesTotal
-      }
-
-      // Someday we can have a loading animation for videos
-      const cpct = Math.round(percent * 100)
-
-      if (cpct === 100) {
-        // do something now that we are done
-      } else {
-        // do something with this percentage info (cpct)
-      }
-    });
-
-    // Error listener
-    video.addEventListener('error', (event) => {
-      console.error(self.video.error);
-      self.showError();
-    });
-
-    video.addEventListener("timeupdate", () => {
-      if (object.paused === false) {
-        let percent = object.currentTime * 100 / object.duration;
-
-        element.querySelectorAll('valiant-progress-bar')[0].children[0].setAttribute("style", "width:" + percent + "%;");
-        element.querySelectorAll('.valiant-progress-bar')[0].children[1].setAttribute("style", "width:" + (100 - percent) + "%;");
-        //Update time label
-        let durMin = Math.floor(object.duration / 60);
-        let durSec = Math.floor(object.duration - (durMin * 60));
-        let timeMin = Math.floor(object.currentTime / 60);
-        let timeSec = Math.floor(object.currentTime - (timeMin * 60));
-        let duration = durMin + ':' + (durSec < 10 ? '0' + durSec : durSec);
-        let currentTime = timeMin + ':' + (timeSec < 10 ? '0' + timeSec : timeSec);
-        element.querySelectorAll('.controls .timeLabel')[0].innerHTML = (currentTime+' / '+ duration);
-      }
-    });
-
-    // IE 11 and previous not supports THREE.Texture([video]), we must create a canvas that draws the video and use that to create the Texture
-    const isIE = navigator.appName ==  'Microsoft Internet Explorer' || !!(navigator.userAgent.match(/Trident/) || navigator.userAgent.match(/rv 11/));
-    if (isIE) {
-      object.videocanvas = document.createElement('canvas');
-      object.texture = new THREE.Texture(object.videocanvas);
-      // set canvas size = video size when known
-      video.addEventListener('loadedmetadata', function () {
-        self.videocanvas.width = self.video.videoWidth;
-        self.videocanvas.height = self.video.videoHeight;
-        createAnimation();
-      });
-    } else {
-      object.texture = new THREE.Texture( object.video );
-    }
-
     //force browser caching of the video to solve rendering errors with big videos
-    var xhr = new XMLHttpRequest();
-    xhr.open('GET', element.getAttribute('data-video-src'), true);
-    xhr.responseType = 'blob';
-    xhr.onload = function(e) {
-      if (this.status === 200) {
-        var vid = (window.webkitURL ? webkitURL : URL).createObjectURL(this.response);
+    let request = new XMLHttpRequest()
+    request.open('GET', element.getAttribute('data-video-src'), true)
+
+    request.onload = (e) => {
+      if (request.status >= 200 && request.status < 400) {
+        object.video = `<video crossorigin="anonymous" src="${request.responseURL}"></video>`
+        element.innerHTML += object.video
+        video = element.querySelectorAll('video')[0]
+
         //Video Play Listener, fires after video loads
         video.addEventListener("canplaythrough", () => {
+          console.log(request)
           console.log(self)
           if (self.options.autoplay === true) {
             self.hideWaiting();
@@ -218,25 +156,90 @@ const ThreeSixty = () => {
             self.videoReady = true;
           }
         });
+
+        // Error listener
+        video.addEventListener('error', (event) => {
+          console.error(self.video.error);
+          self.showError();
+        });
+
+        video.addEventListener("timeupdate", () => {
+          if (object.paused === false) {
+            let percent = object.currentTime * 100 / object.duration;
+
+            element.querySelectorAll('valiant-progress-bar')[0].children[0].setAttribute("style", "width:" + percent + "%;");
+            element.querySelectorAll('.valiant-progress-bar')[0].children[1].setAttribute("style", "width:" + (100 - percent) + "%;");
+            //Update time label
+            let durMin = Math.floor(object.duration / 60);
+            let durSec = Math.floor(object.duration - (durMin * 60));
+            let timeMin = Math.floor(object.currentTime / 60);
+            let timeSec = Math.floor(object.currentTime - (timeMin * 60));
+            let duration = durMin + ':' + (durSec < 10 ? '0' + durSec : durSec);
+            let currentTime = timeMin + ':' + (timeSec < 10 ? '0' + timeSec : timeSec);
+            element.querySelectorAll('.controls .timeLabel')[0].innerHTML = (currentTime+' / '+ duration);
+          }
+        });
+
+        // attach video player event listeners
+        video.addEventListener("ended", () => {})
+
+        // Progress Meter
+        video.addEventListener("progress", () => {
+          let percent = null
+
+          if (self.video && self.video.buffered && self.video.buffered.length > 0 && self.video.buffered.end && self.video.duration)
+            percent = self.video.buffered.end(0) / self._ideo.duration
+
+          // Some browsers (e.g., FF3.6 and Safari 5) cannot calculate target.bufferered.end()
+          // to be anything other than 0. If the byte count is available we use this instead.
+          // Browsers that support the else if do not seem to have the bufferedBytes value and
+          // should skip to there. Tested in Safari 5, Webkit head, FF3.6, Chrome 6, IE 7/8.
+          else if (self.video && self.video.bytesTotal !== undefined && self.video.bytesTotal > 0 && self.video.bufferedBytes !== undefined) {
+            percent = self.video.bufferedBytes / self.video.bytesTotal
+          }
+
+          // Someday we can have a loading animation for videos
+          const cpct = Math.round(percent * 100)
+
+          if (cpct === 100) {
+            // do something now that we are done
+          } else {
+            // do something with this percentage info (cpct)
+          }
+        });
+
+        // IE 11 and previous not supports THREE.Texture([video]), we must create a canvas that draws the video and use that to create the Texture
+        const isIE = navigator.appName ==  'Microsoft Internet Explorer' || !!(navigator.userAgent.match(/Trident/) || navigator.userAgent.match(/rv 11/));
+        if (isIE) {
+          //object.videocanvas = `<canvas></canvas>`
+          object.texture = new THREE.Texture(object.videocanvas);
+          // set canvas size = video size when known
+          video.addEventListener('loadedmetadata', function () {
+            //self.videocanvas.width = self.video.videoWidth;
+            //self.videocanvas.height = self.video.videoHeight;
+            createAnimation();
+          });
+        } else {
+          object.texture = new THREE.Texture(object.video);
+        }
+
+        if(!isIE) {
+          createAnimation();
+        }
         // set the video src and begin loading
-        video.src = vid;
       }
     };
 
-    xhr.onreadystatechange = function (oEvent) {
-      if (xhr.readyState === 4) {
-        if (xhr.status !== 200) {
-          console.error('Video error: status ' + xhr.status);
+    request.onreadystatechange = function (oEvent) {
+      if (request.readyState === 4) {
+        if (request.status !== 200) {
+          console.error('Video error: status ' + request.status);
           self.showError();
         }
       }
     };
 
-    xhr.send();
-
-    if(!isIE) {
-      createAnimation();
-    }
+    request.send();
   }
 
   // creates div and buttons for onscreen video controls
@@ -267,7 +270,6 @@ const ThreeSixty = () => {
       </div>`
 
     element.innerHTML += controlsHTML
-    element.innerHTML += '<div class="timeTooltip">00:00</div>'
 
     // hide controls if option is set
     if(object.options.hideControls) {
@@ -280,118 +282,63 @@ const ThreeSixty = () => {
 
   const attachControlEvents = () => {
     // create a self var to pass to our controller functions
-    var self = this;
+    let self = object
 
-    this.element.addEventListener( 'mousemove', this.onMouseMove.bind(this), false );
-    this.element.addEventListener( 'touchmove', this.onMouseMove.bind(this), false );
-    this.element.addEventListener( 'mousewheel', this.onMouseWheel.bind(this), false );
-    this.element.addEventListener( 'DOMMouseScroll', this.onMouseWheel.bind(this), false );
-    this.element.addEventListener( 'mousedown', this.onMouseDown.bind(this), false);
-    this.element.addEventListener( 'touchstart', this.onMouseDown.bind(this), false);
-    this.element.addEventListener( 'mouseup', this.onMouseUp.bind(this), false);
-    this.element.addEventListener( 'touchend', this.onMouseUp.bind(this), false);
+    element.addEventListener( 'mousemove', onMouseMove.bind(element), false );
+    element.addEventListener( 'touchmove', onMouseMove.bind(element), false );
+    element.addEventListener( 'mousewheel', onMouseWheel.bind(element), false );
+    element.addEventListener( 'DOMMouseScroll', onMouseWheel.bind(element), false );
+    element.addEventListener( 'mousedown', onMouseDown.bind(element), false);
+    element.addEventListener( 'touchstart', onMouseDown.bind(element), false);
+    element.addEventListener( 'mouseup', onMouseUp.bind(element), false);
+    element.addEventListener( 'touchend', onMouseUp.bind(element), false);
 
-    if(this.options.keyboardControls){
-      this.element.addEventListener('keydown',this.onKeyDown.bind(this), false);
-      this.element.addEventListener('keyup',this.onKeyUp.bind(this), false);
+    if(object.options.keyboardControls){
+      element.addEventListener('keydown',onKeyDown.bind(element), false)
+      element.addEventListener('keyup', onKeyUp.bind(element), false)
       // Used custom press event because for the arrow buttons is not throws the 'keypress' event
-      this.element.addEventListener('keyArrowPress',this.onKeyArrowPress.bind(this), false);
-      this.element.addEventListener('click',function () {
-        $(self.element).focus();
-      },false);
+      element.addEventListener('keyArrowPress', onKeyArrowPress.bind(element), false)
+      element.addEventListener('click', () => {
+        element.focus()
+      },false)
     }
 
-    $(self.element).find('.controlsWrapper > .valiant-progress-bar')[0].addEventListener("click", this.onProgressClick.bind(this), false);
-    $(self.element).find('.controlsWrapper > .valiant-progress-bar')[0].addEventListener("mousemove", this.onProgressMouseMove.bind(this), false);
-    $(self.element).find('.controlsWrapper > .valiant-progress-bar')[0].addEventListener("mouseout", this.onProgressMouseOut.bind(this), false);
-
-    $(document).on('webkitfullscreenchange mozfullscreenchange fullscreenchange MSFullscreenChange',this.fullscreen.bind(this));
-
-    $(window).resize(function() {
-      self.resizeGL($(self.element).width(), $(self.element).height());
-    });
-
-    // Player Controls
-    $(this.element).find('.playButton').click(function(e) {
-      e.preventDefault();
-      if($(this).hasClass('fa-pause')) {
-        $(this).removeClass('fa-pause').addClass('fa-play');
-        self.pause();
-      } else {
-        $(this).removeClass('fa-play').addClass('fa-pause');
-        self.play();
-      }
-    });
-
-    $(this.element).find(".fullscreenButton").click(function(e) {
-      e.preventDefault();
-      var elem = $(self.element)[0];
-      if($(this).hasClass('fa-expand')) {
-        if (elem.requestFullscreen) {
-            elem.requestFullscreen();
-        } else if (elem.msRequestFullscreen) {
-            elem.msRequestFullscreen();
-        } else if (elem.mozRequestFullScreen) {
-            elem.mozRequestFullScreen();
-        } else if (elem.webkitRequestFullscreen) {
-            elem.webkitRequestFullscreen();
-        }
-      } else {
-        if (elem.requestFullscreen) {
-            document.exitFullscreen();
-        } else if (elem.msRequestFullscreen) {
-            document.msExitFullscreen();
-        } else if (elem.mozRequestFullScreen) {
-            document.mozCancelFullScreen();
-        } else if (elem.webkitRequestFullscreen) {
-            document.webkitExitFullscreen();
-        }
-      }
-    });
-
-    $(this.element).find(".muteButton").click(function(e) {
-      e.preventDefault();
-      if($(this).hasClass('fa-volume-off')) {
-        $(this).removeClass('fa-volume-off').addClass('fa-volume-up');
-        self._video.muted = false;
-      } else {
-        $(this).removeClass('fa-volume-up').addClass('fa-volume-off');
-        self._video.muted = true;
-      }
-    });
-
-    $(this.element).find('.controlsWrapper .volumeControl')
-      .mousedown(this.onVolumeMouseDown.bind(this))
-      .mouseup(this.onVolumeMouseUp.bind(this))
-      .mouseleave(this.onVolumeMouseUp.bind(this))
-      .mousemove(this.onVolumeMouseMove.bind(this));
-
-    $(this._video).on('volumechange',this.onVolumeChange.bind(this));
+    element.querySelectorAll('.valiant-progress-bar')[0].addEventListener("click", onProgressClick.bind(this), false)
+    element.querySelectorAll('.valiant-progress-bar')[0].addEventListener("mousemove", onProgressMouseMove.bind(this), false)
+    element.querySelectorAll('.valiant-progress-bar')[0].addEventListener("mouseout", onProgressMouseOut.bind(this), false)
   }
 
   const onMouseMove = (event) => {
-    this._onPointerDownPointerX = event.clientX;
-    this._onPointerDownPointerY = -event.clientY;
-    this.relativeX = event.pageX - $(this.element).find('canvas').offset().left;
-    this._onPointerDownLon = this._lon;
-    this._onPointerDownLat = this._lat;
+    object.onPointerDownPointerX = event.clientX;
+    object.onPointerDownPointerY = -event.clientY;
 
-    var x, y;
+    //object.relativeX = event.pageX - element.querySelectorAll('canvas')[0].offset().left;
+    object.relativeX = event.pageX
 
-    if(this.options.clickAndDrag) {
-      if(this._mouseDown) {
-        x = event.pageX - this._dragStart.x;
-        y = event.pageY - this._dragStart.y;
-        this._dragStart.x = event.pageX;
-        this._dragStart.y = event.pageY;
-        this._lon += x;
-        this._lat -= y;
+    object.onPointerDownLon = object.lon;
+    object.onPointerDownLat = object.lat;
+
+    let x, y
+
+    if(object.options.clickAndDrag) {
+      if(mouseDown) {
+        x = event.pageX - object.dragStart.x;
+        y = event.pageY - object.dragStart.y;
+        object.dragStart.x = event.pageX;
+        object.dragStart.y = event.pageY;
+        object.lon += x;
+        object.lat -= y;
       }
     } else {
-      x = event.pageX - $(this.element).find('canvas').offset().left;
-      y = event.pageY - $(this.element).find('canvas').offset().top;
-      this._lon = ( x / $(this.element).find('canvas').width() ) * 430 - 225;
-      this._lat = ( y / $(this.element).find('canvas').height() ) * -180 + 90;
+      let rect = element.querySelectorAll('canvas')[0].getBoundingClientRect()
+      x = event.pageX - rect.left + document.body.scrollLeft
+      y = event.pageY - rect.top + document.body.scrollTop
+
+      //x = event.pageX
+      //y = event.pageY
+
+      object.lon = ( x / element.querySelectorAll('canvas')[0].width) * 430 - 225;
+      object.lat = ( y / element.querySelectorAll('canvas')[0].height) * -180 + 90;
     }
   }
 
@@ -420,9 +367,9 @@ const ThreeSixty = () => {
   }
 
   const onMouseDown = (event) => {
-    this._mouseDown = true;
-    this._dragStart.x = event.pageX;
-    this._dragStart.y = event.pageY;
+    object.mouseDown = true
+    object.dragStart.x = event.pageX
+    object.dragStart.y = event.pageY
   }
 
   const onProgressClick = (event) => {
@@ -454,7 +401,7 @@ const ThreeSixty = () => {
   }
 
   const onMouseUp = (event) => {
-    this._mouseDown = false;
+    object.mouseDown = false;
   }
 
   const onKeyDown = (event) => {
@@ -506,54 +453,26 @@ const ThreeSixty = () => {
    }
   }
 
-  const onVolumeMouseDown = (event) => {
-    event.preventDefault();
-    this._volumeMouseDown = true;
-    this.onVolumeMouseMove(event);
-  }
-
-  const onVolumeMouseUp = (event) => {
-    event.preventDefault();
-    this._volumeMouseDown = false;
-  }
-
-  const onVolumeMouseMove = (event) => {
-    event.preventDefault();
-    if(this._volumeMouseDown){
-      var volumeControl = $(this.element).find('.controlsWrapper .volumeControl');
-      var percent =  (this.relativeX - volumeControl.offset().left + (volumeControl.find('.volumeBar > .volumeCursor').width()/2)) / volumeControl.width() * 100;
-      if(percent>=0 && percent<=100){
-        this._video.volume = percent/100;
-      }
-    }
-  }
-
-  const onVolumeChange = (event) => {
-    //change volume cursor value
-    var percent = this._video.muted==true && !this._volumeMouseDown? 0:(this._video.volume * 100);
-    $(this.element).find('.controlsWrapper .volumeControl > .volumeBar').css({width: percent+"%"});
-
-    //change mute button
-    var muteButton = $(this.element).find(".muteButton");
-    if((percent>0 && muteButton.hasClass('fa-volume-off')) || (percent==0 && muteButton.hasClass('fa-volume-up'))){
-      muteButton.click();
-    }
-  }
-
   const animate = () => {
     // set our animate function to fire next time a frame is ready
     // object.requestAnimationId = requestAnimationFrame(object.animate.bind(object));
 
     if(object.isVideo) {
-      if (video.readyState === video.HAVE_ENOUGH_DATA) {
+      console.log(object.isVideo)
+      console.log(video.readyState)
+      if (video.readyState === 4) {
         if(object.videocanvas) {
-          object.videocanvas.getContext('2d').drawImage(video, 0, 0, object.videocanvas.width, object.videocanvas.height);
+          //console.log(object.videocanvas)
+          //element.innerHTML += object.videocanvas
+          //let canvas = element.querySelectorAll('canvas')[0]
+          //canvas.getContext('2d').drawImage(video, 0, 0, object.videocanvas.width, object.videocanvas.height);
         }
         if(typeof(object.texture) !== "undefined" ) {
-          let ct = new Date().getTime();
+          let ct = new Date().getTime()
           if(ct - object.time >= 30) {
-            object.texture.needsUpdate = true;
-            object.time = ct;
+            object.texture.needsUpdate = true
+            object.time = ct
+
           }
         }
       }
@@ -592,30 +511,29 @@ const ThreeSixty = () => {
   // Video specific functions, exposed to controller
   const play = () => {
     //code to play media
-    this._video.play();
+    video.play();
   }
 
   const pause = () => {
     //code to stop media
-    this._video.pause();
+    video.pause();
   }
 
   const loadVideo = (videoFile) => {
-    this._video.src = videoFile;
+    video.src = videoFile;
   }
 
   const unloadVideo = () => {
     // overkill unloading to avoid dreaded video 'pending' bug in Chrome. See https://code.google.com/p/chromium/issues/detail?id=234779
-    this.pause();
-    this._video.src = '';
-    this._video.removeAttribute('src');
+    video.pause();
+    video.src = '';
+    video.removeAttribute('src');
   }
 
   const loadPhoto = (photoFile) => {
     this._texture = THREE.ImageUtils.loadTexture( photoFile );
   }
 
-  // done
   const fullscreen = () => {
     if(element.querySelectorAll('.fa-expand')[0].length > 0) {
       object.resizeGL(screen.width, screen.height);
@@ -637,14 +555,12 @@ const ThreeSixty = () => {
     }
   }
 
-  // done
   const resizeGL = (w, h) => {
     object.renderer.setSize(w, h);
     object.camera.aspect = w / h;
     object.camera.updateProjectionMatrix();
   }
 
-  // done
   const showWaiting = () => {
     let loading = element.querySelectorAll('.loading')[0]
     loading.querySelectorAll('.waiting-icon')[0].style.display = ''
@@ -652,12 +568,10 @@ const ThreeSixty = () => {
     loading.style.display = ''
   }
 
-  // done
   const hideWaiting = () => {
     element.querySelectorAll('.loading')[0].style.display = 'none'
   }
 
-  // done
   const showError = () => {
     let loading = element.querySelectorAll('.loading')[0];
     loading.querySelectorAll('.waiting-icon')[0].style.display = 'none'
@@ -676,11 +590,13 @@ const ThreeSixty = () => {
     $(this._renderer.domElement).remove();
   }
 
-  const attach = (el, detector) => {
+  const attach = (el, detector, document, window) => {
     Detector = detector
+    document = document
+    window = window
     if (el.tagName) {
       element = el
-      object = {options: {}}
+      object = {options:{}}
 
       object.defaults = defaults
       object.name = pluginName
@@ -711,8 +627,8 @@ const ThreeSixty = () => {
       */
 
       // save our original height and width for returning from fullscreen
-      // object.originalWidth = element.querySelectorAll('canvas')[0].width;
-      // object.originalHeight = element.querySelectorAll('canvas')[0].height;
+      //object.originalWidth = element.querySelectorAll('canvas')[0].width;
+      //object.originalHeight = element.querySelectorAll('canvas')[0].height;
 
       // add a class to our element so it inherits the appropriate styles
       if (element.classList)
