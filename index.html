@@ -21,7 +21,7 @@
   <div id="360Video" class="container" data-video-src="/dist/public/video/overpass-clip.mp4"></div>
   -->
 
-	<div class="valiantPhoto" data-video-src="/dist/public/video/overpass-clip.mp4" style="width: 480px; height: 380px;"></div>
+	<div class="threesixty" data-video-src="/dist/public/video/overpass-clip.mp4" style="width: 480px; height: 380px;"></div>
 	<!--<div class="valiantPhoto" data-photo-src="/dist/public/video/equirectangular-screenshot.jpg" style="width: 480px; height: 380px;"></div>-->
 
 	<script type="text/javascript" src="/dist/public/jquery.min.js"></script>
@@ -32,7 +32,8 @@
 
 	<script type="text/javascript">
 		$(document).ready(function() {
-			$('.valiantPhoto').Valiant360();
+      let div = document.querySelectorAll('.threesixty')[0]
+      new threesixty(div)
 		});
 	</script>
 
