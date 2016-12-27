@@ -330,12 +330,12 @@ const ThreeSixty = () => {
         object.lat -= y;
       }
     } else {
-      let rect = element.querySelectorAll('canvas')[0].getBoundingClientRect()
-      x = event.pageX - rect.left + document.body.scrollLeft
-      y = event.pageY - rect.top + document.body.scrollTop
+      //let rect = element.querySelectorAll('canvas')[0].getBoundingClientRect()
+      //x = event.pageX - rect.left + document.body.scrollLeft
+      // y = event.pageY - rect.top + document.body.scrollTop
 
-      //x = event.pageX
-      //y = event.pageY
+      x = event.pageX
+      y = event.pageY
 
       object.lon = ( x / element.querySelectorAll('canvas')[0].width) * 430 - 225;
       object.lat = ( y / element.querySelectorAll('canvas')[0].height) * -180 + 90;
