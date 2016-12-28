@@ -10,7 +10,7 @@ module.exports = {
 
   output: {
     path: path.join(__dirname, 'dist/public'),
-    filename: 'threesixty.js',
+    filename: 'bundle.js',
     libraryTarget: 'var',
     library: 'ThreeSixty',
     publicPath: '/dist/public/'
