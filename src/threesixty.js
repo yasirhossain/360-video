@@ -2,20 +2,6 @@
 // TODO strip out video data source and add video html element to grab src
 
 const ThreeSixty = (THREE, Detector, window, document, undefined) => {
-  // undefined is used here as the undefined global
-  // variable in ECMAScript 3 and is mutable (i.e. it can
-  // be changed by someone else). undefined isn't really
-  // being passed in so we can ensure that its value is
-  // truly undefined. In ES5, undefined can no longer be
-  // modified.
-
-  // window and document are passed through as local
-  // variables rather than as globals, because self (slightly)
-  // quickens the resolution process and can be more
-  // efficiently minified (especially when both are
-  // regularly referenced in your plugin).
-
-  // Create the defaults once
   let self = {},
       defaults = {
         crossOrigin: 'anonymous',
@@ -31,39 +17,33 @@ const ThreeSixty = (THREE, Detector, window, document, undefined) => {
         debug: false,
         flatProjection: false,
         autoplay: true
-      }
-  // The actual plugin constructor
-  const attach = (element) => {
+      },
+      div,
+      video
+
+  const attachContainer = (element) => {
     self.element = element
     self.options = defaults
-    self._defaults = defaults
-
-    // Place initialization logic here
-    // You already have access to the DOM element and
-    // the options via the instance, e.g. self.element
-    // and self.options
-    // you can add more functions like the one below and
-    // call them like so: self.yourOtherFunction(self.element, self.options).
 
     // instantiate some local variables we're going to need
-    self._time = new Date().getTime()
-    self._controls = {}
-    self._id = generateUUID()
+    self.time = new Date().getTime()
+    self.controls = {}
+    self.id = generateUUID()
 
-    self._requestAnimationId = '' // used to cancel requestAnimationFrame on destroy
-    self._isVideo = false
-    self._isPhoto = false
-    self._isFullscreen = false
-    self._mouseDown = false
-    self._dragStart = {}
+    self.requestAnimationId = '' // used to cancel requestAnimationFrame on destroy
+    self.isVideo = false
+    self.isPhoto = false
+    self.isFullscreen = false
+    self.mouseDown = false
+    self.dragStart = {}
 
-    self._lat = self.options.lat;
-    self._lon = self.options.lon;
-    self._fov = self.options.fov;
+    self.lat = self.options.lat;
+    self.lon = self.options.lon;
+    self.fov = self.options.fov;
 
     // save our original height and width for returning from fullscreen
-    self._originalWidth = self.element.querySelectorAll('canvas').offsetWidth
-    self._originalHeight = self.element.querySelectorAll('canvas').offsetHeight
+    self.originalWidth = self.element.querySelectorAll('canvas').offsetWidth
+    self.originalHeight = self.element.querySelectorAll('canvas').offsetHeight
 
     // add a class to our element so it inherits the appropriate styles
     if (self.element.classList)
@@ -75,7 +55,10 @@ const ThreeSixty = (THREE, Detector, window, document, undefined) => {
     if(self.options.keyboardControls && !self.element.getAttribute("tabindex")) {
       self.element.setAttribute("tabindex", "1")
     }
+  }
 
+  const attachVideo = (element) => {
+    video = element
     createMediaPlayer()
     createControls()
   }
@@ -93,160 +76,162 @@ const ThreeSixty = (THREE, Detector, window, document, undefined) => {
   const createMediaPlayer = () => {
     // make a self reference we can pass to our callbacks
     // create a local THREE.js scene
-    self._scene = new THREE.Scene()
+    self.scene = new THREE.Scene()
 
     // create ThreeJS camera
-    self._camera = new THREE.PerspectiveCamera(self._fov, self.element.offsetWidth / self.element.offsetHeight, 0.1, 1000)
-    self._camera.setLens(self._fov)
+    self.camera = new THREE.PerspectiveCamera(self.fov, self.element.offsetWidth / self.element.offsetHeight, 0.1, 1000)
+    self.camera.setLens(self.fov)
 
     // create ThreeJS renderer and append it to our object
-    self._renderer = Detector.webgl? new THREE.WebGLRenderer(): new THREE.CanvasRenderer()
-    self._renderer.setSize(self.element.offsetWidth, self.element.offsetHeight)
-    self._renderer.autoClear = false
-    self._renderer.setClearColor(0x333333, 1)
+    self.renderer = Detector.webgl? new THREE.WebGLRenderer(): new THREE.CanvasRenderer()
+    self.renderer.setSize(self.element.offsetWidth, self.element.offsetHeight)
+    self.renderer.autoClear = false
+    self.renderer.setClearColor(0x333333, 1)
 
     // append the rendering element to self div
-    self.element.appendChild(self._renderer.domElement)
+    self.element.appendChild(self.renderer.domElement)
 
     const createAnimation = () => {
-      self._texture.generateMipmaps = false
-      self._texture.minFilter = THREE.LinearFilter
-      self._texture.magFilter = THREE.LinearFilter
-      self._texture.format = THREE.RGBFormat
+      self.texture.generateMipmaps = false
+      self.texture.minFilter = THREE.LinearFilter
+      self.texture.magFilter = THREE.LinearFilter
+      self.texture.format = THREE.RGBFormat
 
       // create ThreeJS mesh sphere onto which our texture will be drawn
-      self._mesh = new THREE.Mesh(new THREE.SphereGeometry( 500, 80, 50 ), new THREE.MeshBasicMaterial({map: self._texture}))
-      self._mesh.scale.x = -1 // mirror the texture, since we're looking from the inside out
-      self._scene.add(self._mesh)
+      self.mesh = new THREE.Mesh(new THREE.SphereGeometry( 500, 80, 50 ), new THREE.MeshBasicMaterial({map: self.texture}))
+      self.mesh.scale.x = -1 // mirror the texture, since we're looking from the inside out
+      self.scene.add(self.mesh)
 
       animate()
     }
 
     // figure out our texturing situation, based on what our source is
     if(self.element.getAttribute('data-photo-src')) {
-      self._isPhoto = true
+      self.isPhoto = true
       THREE.ImageUtils.crossOrigin = self.options.crossOrigin
-      self._texture = THREE.ImageUtils.loadTexture(self.element.getAttribute('data-photo-src'))
+      self.texture = THREE.ImageUtils.loadTexture(self.element.getAttribute('data-photo-src'))
       createAnimation()
     } else {
-      self._isVideo = true
+      if (video) {
+        // create loading overlay
+        let loadingElem = document.createElement('div')
+        if (loadingElem.classList)
+          loadingElem.classList.add('loading');
+        else
+          loadingElem.className += ' ' + 'loading'
 
-      // create loading overlay
-      let loadingElem = document.createElement('div')
-      if (loadingElem.classList)
-        loadingElem.classList.add('loading');
-      else
-        loadingElem.className += ' ' + 'loading'
+        loadingElem.innerHTML = `
+          <div class="icon waiting-icon"></div>
+          <div class="icon error-icon"><i class="fa fa-exclamation-triangle" aria-hidden="true"></i></div>
+        `
+        self.element.appendChild(loadingElem)
+        showWaiting()
 
-      loadingElem.innerHTML = `
-        <div class="icon waiting-icon"></div>
-        <div class="icon error-icon"><i class="fa fa-exclamation-triangle" aria-hidden="true"></i></div>
-      `
-      self.element.appendChild(loadingElem)
-      showWaiting()
+        self.isVideo = true
 
-      // create off-dom video player
-      self._video = document.createElement('video')
-      self._video.setAttribute('crossorigin', self.options.crossOrigin)
-      self._video.style.display = 'none'
-      self.element.appendChild(self._video)
-      self._video.loop = self.options.loop
+        self.video = video
+        self.video.setAttribute('crossorigin', self.options.crossOrigin)
+        self.video.style.display = 'none'
+        self.video.loop = self.options.loop
 
-      // attach video player event listeners
-      self._video.addEventListener("ended", () => {})
+        // attach video player event listeners
+        self.video.addEventListener("ended", () => {})
 
-      // Progress Meter
-      self._video.addEventListener("progress", () => {
-        let percent = null
-        if (self._video && self._video.buffered && self._video.buffered.length > 0 && self._video.buffered.end && self._video.duration) {
-          percent = self._video.buffered.end(0) / self._video.duration
-        }
-        // Some browsers (e.g., FF3.6 and Safari 5) cannot calculate target.bufferered.end()
-        // to be anything other than 0. If the byte count is available we use self instead.
-        // Browsers that support the else if do not seem to have the bufferedBytes value and
-        // should skip to there. Tested in Safari 5, Webkit head, FF3.6, Chrome 6, IE 7/8.
-        else if (self._video && self._video.bytesTotal !== undefined && self._video.bytesTotal > 0 && self._video.bufferedBytes !== undefined) {
-          percent = self._video.bufferedBytes / self._video.bytesTotal
-        }
+        // Progress Meter
+        self.video.addEventListener("progress", () => {
+          let percent = null
+          if (self.video && self.video.buffered && self.video.buffered.length > 0 && self.video.buffered.end && self.video.duration) {
+            percent = self.video.buffered.end(0) / self.video.duration
+          }
+          // Some browsers (e.g., FF3.6 and Safari 5) cannot calculate target.bufferered.end()
+          // to be anything other than 0. If the byte count is available we use self instead.
+          // Browsers that support the else if do not seem to have the bufferedBytes value and
+          // should skip to there. Tested in Safari 5, Webkit head, FF3.6, Chrome 6, IE 7/8.
+          else if (self.video && self.video.bytesTotal !== undefined && self.video.bytesTotal > 0 && self.video.bufferedBytes !== undefined) {
+            percent = self.video.bufferedBytes / self.video.bytesTotal
+          }
 
-        // Someday we can have a loading animation for videos
-        var cpct = Math.round(percent * 100)
-        if(cpct === 100) {
-          // do something now that we are done
-        } else {
-          // do something with self percentage info (cpct)
-        }
-      })
-
-      // Error listener
-      self._video.addEventListener('error', (event) => {
-        console.error(self._video.error)
-        showError()
-      })
-
-      self._video.addEventListener("timeupdate", () => {
-        if (self.paused === false){
-          let percent = self.currentTime * 100 / self.duration
-          self.element.querySelectorAll('.controlsWrapper > .progress-bar')[0].children[0].setAttribute("style", "width:" + percent + "%;")
-          self.element.querySelectorAll('.controlsWrapper > .progress-bar')[0].children[1].setAttribute("style", "width:" + (100 - percent) + "%;")
-          //Update time label
-          let durMin = Math.floor(self.duration / 60),
-              durSec = Math.floor(self.duration - (durMin * 60)),
-              timeMin = Math.floor(self.currentTime / 60),
-              timeSec = Math.floor(self.currentTime - (timeMin * 60)),
-              duration = durMin + ':' + (durSec < 10 ? '0' + durSec : durSec),
-              currentTime = timeMin + ':' + (timeSec < 10 ? '0' + timeSec : timeSec)
-          self.element.querySelectorAll('.controls .timeLabel').innerHTML = (currentTime + ' / ' + duration)
-        }
-      })
-
-      // IE 11 and previous not supports THREE.Texture([video]), we must create a canvas that draws the video and use that to create the Texture
-      var isIE = navigator.appName == 'Microsoft Internet Explorer' || !!(navigator.userAgent.match(/Trident/) || navigator.userAgent.match(/rv 11/))
-      if (isIE) {
-        self._videocanvas = document.createElement('canvas')
-        self._texture = new THREE.Texture(self._videocanvas)
-        // set canvas size = video size when known
-        self._video.addEventListener('loadedmetadata', () => {
-          self._videocanvas.width = self._video.videoWidth;
-          self._videocanvas.height = self._video.videoHeight;
-          createAnimation()
+          // Someday we can have a loading animation for videos
+          var cpct = Math.round(percent * 100)
+          if(cpct === 100) {
+            // do something now that we are done
+          } else {
+            // do something with self percentage info (cpct)
+          }
         })
-      } else {
-        self._texture = new THREE.Texture( self._video )
-      }
 
-      //force browser caching of the video to solve rendering errors with big videos
-      let xhr = new XMLHttpRequest()
-      xhr.open('GET', self.element.getAttribute('data-video-src'), true)
-      xhr.responseType = 'blob'
-      xhr.onload = function (e) {
-        if (e.srcElement.status === 200) {
-          let vid = URL.createObjectURL(e.srcElement.response)
-          //Video Play Listener, fires after video loads
-          self._video.addEventListener("canplaythrough", () => {
-            if (self.options.autoplay === true) {
-              hideWaiting()
-              play()
-              self._videoReady = true
-            }
+        // Error listener
+        self.video.addEventListener('error', (event) => {
+          console.error(self.video.error)
+          showError()
+        })
+
+        self.video.addEventListener("timeupdate", () => {
+          if (self.paused === false){
+            let percent = self.currentTime * 100 / self.duration
+            self.element.querySelectorAll('.controlsWrapper > .progress-bar')[0].children[0].setAttribute("style", "width:" + percent + "%;")
+            self.element.querySelectorAll('.controlsWrapper > .progress-bar')[0].children[1].setAttribute("style", "width:" + (100 - percent) + "%;")
+            //Update time label
+            let durMin = Math.floor(self.duration / 60),
+                durSec = Math.floor(self.duration - (durMin * 60)),
+                timeMin = Math.floor(self.currentTime / 60),
+                timeSec = Math.floor(self.currentTime - (timeMin * 60)),
+                duration = durMin + ':' + (durSec < 10 ? '0' + durSec : durSec),
+                currentTime = timeMin + ':' + (timeSec < 10 ? '0' + timeSec : timeSec)
+            self.element.querySelectorAll('.controls .timeLabel').innerHTML = (currentTime + ' / ' + duration)
+          }
+        })
+
+        // IE 11 and previous not supports THREE.Texture([video]), we must create a canvas that draws the video and use that to create the Texture
+        var isIE = navigator.appName == 'Microsoft Internet Explorer' || !!(navigator.userAgent.match(/Trident/) || navigator.userAgent.match(/rv 11/))
+        if (isIE) {
+          self.videocanvas = document.createElement('canvas')
+          self.texture = new THREE.Texture(self.videocanvas)
+          // set canvas size = video size when known
+          self.video.addEventListener('loadedmetadata', () => {
+            self.videocanvas.width = self.video.videoWidth;
+            self.videocanvas.height = self.video.videoHeight;
+            createAnimation()
           })
-
-          // set the video src and begin loading
-          self._video.src = vid
+        } else {
+          self.texture = new THREE.Texture( self.video )
         }
-      };
 
-      xhr.onreadystatechange = (oEvent) => {
-        if (xhr.readyState === 4) {
-          if (xhr.status !== 200) {
-            console.error('Video error: status ' + xhr.status)
-            self.showError()
+        //force browser caching of the video to solve rendering errors with big videos
+        let xhr = new XMLHttpRequest()
+        xhr.open('GET', self.video.getAttribute('src'), true)
+        xhr.responseType = 'blob'
+        xhr.onload = function (e) {
+          if (e.srcElement.status === 200) {
+            let vid = URL.createObjectURL(e.srcElement.response)
+            //Video Play Listener, fires after video loads
+            self.video.addEventListener("canplaythrough", () => {
+              if (self.options.autoplay === true) {
+                hideWaiting()
+                play()
+                self.videoReady = true
+              }
+            })
+
+            // set the video src and begin loading
+            self.video.src = vid
+          }
+        };
+
+        xhr.onreadystatechange = (oEvent) => {
+          if (xhr.readyState === 4) {
+            if (xhr.status !== 200) {
+              console.error('Video error: status ' + xhr.status)
+              showError()
+            }
           }
         }
-      }
-      xhr.send()
+        xhr.send()
 
-      if(!isIE) createAnimation()
+        if(!isIE) createAnimation()
+      } else {
+        console.log(`Please add a video`)
+      }
     }
   }
 
@@ -306,32 +291,32 @@ const ThreeSixty = (THREE, Detector, window, document, undefined) => {
   }
 
   const onMouseMove = (event) => {
-    self._onPointerDownPointerX = event.clientX
-    self._onPointerDownPointerY = -event.clientY
+    self.onPointerDownPointerX = event.clientX
+    self.onPointerDownPointerY = -event.clientY
 
     let rect = self.element.querySelectorAll('canvas')[0].getBoundingClientRect()
     self.relativeX = event.pageX - rect.left
 
-    self._onPointerDownLon = self._lon
-    self._onPointerDownLat = self._lat
+    self.onPointerDownLon = self.lon
+    self.onPointerDownLat = self.lat
 
     let x, y
 
     if(self.options.clickAndDrag) {
-      if(self._mouseDown) {
-        x = event.pageX - self._dragStart.x
-        y = event.pageY - self._dragStart.y
-        self._dragStart.x = event.pageX
-        self._dragStart.y = event.pageY
-        self._lon += x
-        self._lat -= y
+      if(self.mouseDown) {
+        x = event.pageX - self.dragStart.x
+        y = event.pageY - self.dragStart.y
+        self.dragStart.x = event.pageX
+        self.dragStart.y = event.pageY
+        self.lon += x
+        self.lat -= y
       }
     } else {
       x = event.pageX - rect.left
       y = event.pageY - rect.top
 
-      self._lon = ( x / self.element.querySelectorAll('canvas')[0].offsetWidth ) * 430 - 225
-      self._lat = ( y / self.element.querySelectorAll('canvas')[0].offsetHeight ) * -180 + 90
+      self.lon = ( x / self.element.querySelectorAll('canvas')[0].offsetWidth ) * 430 - 225
+      self.lat = ( y / self.element.querySelectorAll('canvas')[0].offsetHeight ) * -180 + 90
     }
   }
 
@@ -340,49 +325,49 @@ const ThreeSixty = (THREE, Detector, window, document, undefined) => {
 
     // WebKit
     if (event.wheelDeltaY) {
-      self._fov -= event.wheelDeltaY * wheelSpeed
+      self.fov -= event.wheelDeltaY * wheelSpeed
     // Opera / Explorer 9
     } else if (event.wheelDelta) {
-      self._fov -= event.wheelDelta * wheelSpeed
+      self.fov -= event.wheelDelta * wheelSpeed
     // Firefox
     } else if (event.detail) {
-      self._fov += event.detail * 1.0
+      self.fov += event.detail * 1.0
     }
 
-    if(self._fov < self.options.fovMin) {
-      self._fov = self.options.fovMin
-    } else if(self._fov > self.options.fovMax) {
-      self._fov = self.options.fovMax
+    if(self.fov < self.options.fovMin) {
+      self.fov = self.options.fovMin
+    } else if(self.fov > self.options.fovMax) {
+      self.fov = self.options.fovMax
     }
 
-    self._camera.setLens(self._fov)
+    self.camera.setLens(self.fov)
     event.preventDefault()
   }
 
   const onMouseDown = (event) => {
-    self._mouseDown = true
-    self._dragStart.x = event.pageX
-    self._dragStart.y = event.pageY
+    self.mouseDown = true
+    self.dragStart.x = event.pageX
+    self.dragStart.y = event.pageY
   }
 
   const onProgressClick = (event) => {
-    if(self._isVideo && self._video.readyState === self._video.HAVE_ENOUGH_DATA) {
+    if(self.isVideo && self.video.readyState === self.video.HAVE_ENOUGH_DATA) {
       let percent =  self.relativeX / self.element.querySelectorAll('canvas').offsetWidth * 100
       self.element.querySelectorAll('.controlsWrapper > .progress-bar')[0].children[0].setAttribute("style", "width:" + percent + "%;")
       self.element.querySelectorAll('.controlsWrapper > .progress-bar')[0].children[1].setAttribute("style", "width:" + (100 - percent) + "%;")
-      self._video.currentTime = self._video.duration * percent / 100
+      self.video.currentTime = self.video.duration * percent / 100
     }
   }
 
   const onMouseUp = (event) => {
-    self._mouseDown = false
+    self.mouseDown = false
   }
 
   const onKeyDown = (event) => {
    let keyCode = event.keyCode
    if (keyCode >= 37 && keyCode <= 40) {
      event.preventDefault()
-     self._keydown = true
+     self.keydown = true
      let pressEvent = document.createEvent('CustomEvent')
      pressEvent.initCustomEvent("keyArrowPress",true,true,{'keyCode':keyCode})
      self.element.dispatchEvent(pressEvent)
@@ -393,12 +378,12 @@ const ThreeSixty = (THREE, Detector, window, document, undefined) => {
    let keyCode = event.keyCode;
    if (keyCode >= 37 && keyCode <= 40) {
      event.preventDefault()
-     self._keydown = false
+     self.keydown = false
    }
   }
 
   const onKeyArrowPress = (event) => {
-   if (self._keydown) {
+   if (self.keydown) {
      let keyCode = event.detail? event.detail.keyCode:null,
          offset = 3,
          pressDelay = 50,
@@ -407,16 +392,16 @@ const ThreeSixty = (THREE, Detector, window, document, undefined) => {
      event.preventDefault()
      switch (keyCode) {
        //Arrow left
-       case 37: self._lon -= offset;
+       case 37: self.lon -= offset;
          break;
        //Arrow right
-       case 39: self._lon += offset;
+       case 39: self.lon += offset;
          break;
        //Arrow up
-       case 38: self._lat += offset;
+       case 38: self.lat += offset;
          break;
        //Arrow down
-       case 40: self._lat -= offset;
+       case 40: self.lat -= offset;
          break;
      }
      setTimeout(() => {
@@ -430,18 +415,18 @@ const ThreeSixty = (THREE, Detector, window, document, undefined) => {
 
   const animate = () => {
     // set our animate function to fire next time a frame is ready
-    self._requestAnimationId = requestAnimationFrame(animate.bind(self))
+    self.requestAnimationId = requestAnimationFrame(animate.bind(self))
 
-    if(self._isVideo) {
-      if ( self._video.readyState === self._video.HAVE_ENOUGH_DATA) {
-        if(self._videocanvas) {
-          self._videocanvas.getContext('2d').drawImage(self._video, 0, 0, self._videocanvas.width, self._videocanvas.height)
+    if(self.isVideo) {
+      if ( self.video.readyState === self.video.HAVE_ENOUGH_DATA) {
+        if(self.videocanvas) {
+          self.videocanvas.getContext('2d').drawImage(self.video, 0, 0, self.videocanvas.width, self.videocanvas.height)
         }
-        if(typeof(self._texture) !== "undefined" ) {
+        if(typeof(self.texture) !== "undefined" ) {
           let ct = new Date().getTime()
-          if(ct - self._time >= 30) {
-            self._texture.needsUpdate = true
-            self._time = ct
+          if(ct - self.time >= 30) {
+            self.texture.needsUpdate = true
+            self.time = ct
           }
         }
       }
@@ -450,60 +435,60 @@ const ThreeSixty = (THREE, Detector, window, document, undefined) => {
   }
 
   const render = () => {
-    self._lat = Math.max( - 85, Math.min( 85, self._lat))
-    self._phi = ( 90 - self._lat ) * Math.PI / 180
-    self._theta = self._lon * Math.PI / 180
+    self.lat = Math.max( - 85, Math.min( 85, self.lat))
+    self.phi = ( 90 - self.lat ) * Math.PI / 180
+    self.theta = self.lon * Math.PI / 180
 
-    let cx = 500 * Math.sin( self._phi ) * Math.cos( self._theta ),
-        cy = 500 * Math.cos( self._phi ),
-        cz = 500 * Math.sin( self._phi ) * Math.sin( self._theta )
+    let cx = 500 * Math.sin( self.phi ) * Math.cos( self.theta ),
+        cy = 500 * Math.cos( self.phi ),
+        cz = 500 * Math.sin( self.phi ) * Math.sin( self.theta )
 
-    self._camera.lookAt(new THREE.Vector3(cx, cy, cz))
+    self.camera.lookAt(new THREE.Vector3(cx, cy, cz))
 
     // distortion
     if(self.options.flatProjection) {
-      self._camera.position.x = 0
-      self._camera.position.y = 0
-      self._camera.position.z = 0
+      self.camera.position.x = 0
+      self.camera.position.y = 0
+      self.camera.position.z = 0
     } else {
-      self._camera.position.x = - cx
-      self._camera.position.y = - cy
-      self._camera.position.z = - cz
+      self.camera.position.x = - cx
+      self.camera.position.y = - cy
+      self.camera.position.z = - cz
     }
 
-    self._renderer.clear()
-    self._renderer.render( self._scene, self._camera )
+    self.renderer.clear()
+    self.renderer.render( self.scene, self.camera )
   }
 
   const play = () => {
     //code to play media
-    self._video.play()
+    self.video.play()
   }
 
   const pause = () => {
     //code to stop media
-    self._video.pause()
+    self.video.pause()
   }
 
   const loadVideo = (videoFile) => {
-    self._video.src = videoFile
+    self.video.src = videoFile
   }
 
   const unloadVideo = () => {
     // overkill unloading to avoid dreaded video 'pending' bug in Chrome. See https://code.google.com/p/chromium/issues/detail?id=234779
     self.pause()
-    self._video.src = ''
-    self._video.setAttribute('src', '')
+    self.video.src = ''
+    self.video.setAttribute('src', '')
   }
 
   const loadPhoto = (photoFile) => {
-    self._texture = THREE.ImageUtils.loadTexture( photoFile );
+    self.texture = THREE.ImageUtils.loadTexture( photoFile );
   }
 
   const resizeGL = (w, h) => {
-    self._renderer.setSize(w, h)
-    self._camera.aspect = w / h
-    self._camera.updateProjectionMatrix()
+    self.renderer.setSize(w, h)
+    self.camera.aspect = w / h
+    self.camera.updateProjectionMatrix()
   }
 
   const showWaiting = () => {
@@ -525,18 +510,19 @@ const ThreeSixty = (THREE, Detector, window, document, undefined) => {
   }
 
   const destroy = () => {
-    window.cancelAnimationFrame(self._requestAnimationId)
-    self._requestAnimationId = ''
-    self._texture.dispose()
-    self._scene.parentNode.removeChild(self._mesh)
-    if (self._isVideo) {
+    window.cancelAnimationFrame(self.requestAnimationId)
+    self.requestAnimationId = ''
+    self.texture.dispose()
+    self.scene.parentNode.removeChild(self.mesh)
+    if (self.isVideo) {
       unloadVideo()
     }
-    self._renderer.parentNode.removeChild()
+    self.renderer.parentNode.removeChild()
   }
 
   return {
-    attach
+    attachContainer,
+    attachVideo
   }
 }
 

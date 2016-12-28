@@ -45,14 +45,17 @@ const Detector = {
   }
 }
 
+const ts = new ThreeSixty(THREE, Detector, window, document, undefined)
+
 let div = document.querySelectorAll('.threesixty')[0],
+    vid = div.querySelectorAll('video')[0],
     w = Math.max(document.documentElement.clientWidth, window.innerWidth || 0),
     h = Math.max(document.documentElement.clientHeight, window.innerHeight || 0)
 
 div.style.width = w
 div.style.height = h
 
-const ts = new ThreeSixty(THREE, Detector, window, document, undefined)
-ts.attach(div)
-//ts.video(vid)
-div.querySelectorAll('video')[0].muted = true
+ts.attachContainer(div)
+ts.attachVideo(vid)
+
+vid.muted = true
