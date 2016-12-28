@@ -6,11 +6,8 @@
     <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,700,900" rel="stylesheet">
     <script src="/dist/public/hls.js"></script>
 
-    <!--
-    <script src="/dist/public/three.min.js"></script>
     <script src="/dist/public/jquery.min.js"></script>
-    <script src="/dist/public/jquery.valiant360.js"></script>
-    -->
+    <script src="/dist/public/three.js"></script>
 </head>
 <body>
   <nav class="nav">
@@ -24,19 +21,20 @@
 	<div class="threesixty" data-video-src="/dist/public/video/overpass-clip.mp4" style="width: 480px; height: 380px;"></div>
 	<!--<div class="valiantPhoto" data-photo-src="/dist/public/video/equirectangular-screenshot.jpg" style="width: 480px; height: 380px;"></div>-->
 
+  <!--
 	<script type="text/javascript" src="/dist/public/jquery.min.js"></script>
 	<script type="text/javascript" src="/dist/public/three.min.js"></script>
 
-	<!-- Valiant360 plugin, load after jQuery and Three.js -->
-	<script type="text/javascript" src="/dist/public/jquery.threesixty.js"></script>
+	<script type="text/javascript" src="/dist/public/es6.threesixty.js"></script>
 
 	<script type="text/javascript">
 		$(document).ready(function() {
       let div = document.querySelectorAll('.threesixty')[0]
-      new threesixty(div)
+      const ts = new threesixty()
+      ts.init(div)
 		});
 	</script>
-
-  <!--<script type="text/javascript" src="/dist/public/bundle.js"></script>-->
+  -->
+  <script type="text/javascript" src="/dist/public/bundle.js"></script>
 </body>
 </html>
