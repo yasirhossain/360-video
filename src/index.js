@@ -1,3 +1,4 @@
+import THREE from './three'
 import ThreeSixty from './threesixty'
 
 const Detector = {
@@ -53,3 +54,5 @@ div.style.height = h
 
 const ts = new ThreeSixty(THREE, Detector, window, document, undefined)
 ts.attach(div)
+//ts.video(vid)
+div.querySelectorAll('video')[0].muted = true

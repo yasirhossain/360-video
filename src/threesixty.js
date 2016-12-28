@@ -1,4 +1,5 @@
 // TODO strip out options
+// TODO strip out video data source and add video html element to grab src
 
 const ThreeSixty = (THREE, Detector, window, document, undefined) => {
   // undefined is used here as the undefined global
@@ -15,8 +16,7 @@ const ThreeSixty = (THREE, Detector, window, document, undefined) => {
   // regularly referenced in your plugin).
 
   // Create the defaults once
-  let pluginName = "threesixty",
-      plugin, // will hold reference to instantiated Plugin
+  let self = {},
       defaults = {
         crossOrigin: 'anonymous',
         clickAndDrag: false,
@@ -31,15 +31,12 @@ const ThreeSixty = (THREE, Detector, window, document, undefined) => {
         debug: false,
         flatProjection: false,
         autoplay: true
-      },
-      self = {}
-
+      }
   // The actual plugin constructor
   const attach = (element) => {
     self.element = element
     self.options = defaults
     self._defaults = defaults
-    self._name = pluginName
 
     // Place initialization logic here
     // You already have access to the DOM element and
@@ -304,7 +301,7 @@ const ThreeSixty = (THREE, Detector, window, document, undefined) => {
     }
 
     window.onresize = () => {
-      self.resizeGL(self.element.offsetWidth, self.element.offsetHeight)
+      resizeGL(self.element.offsetWidth, self.element.offsetHeight)
     }
   }
 
