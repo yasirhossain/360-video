@@ -15,7 +15,7 @@ const Detector = {
     element.style.background = '#fff'
     element.style.color = '#000'
     element.style.padding = '1.5em'
-    element.style.width = '400px'
+    element.style.width = '800px'
     element.style.margin = '5em auto 0'
     if (!self.webgl) {
       element.innerHTML = window.WebGLRenderingContext ? [
@@ -42,8 +42,14 @@ const Detector = {
 
     parent.appendChild(element)
   }
-};
+}
 
-let div = document.querySelectorAll('.threesixty')[0]
+let div = document.querySelectorAll('.threesixty')[0],
+    w = Math.max(document.documentElement.clientWidth, window.innerWidth || 0),
+    h = Math.max(document.documentElement.clientHeight, window.innerHeight || 0)
+
+div.style.width = w
+div.style.height = h
+
 const ts = new ThreeSixty(THREE, Detector, window, document, undefined)
 ts.attach(div)

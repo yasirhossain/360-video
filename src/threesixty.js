@@ -127,12 +127,12 @@ const ThreeSixty = (THREE, Detector, window, document, undefined) => {
 
     // figure out our texturing situation, based on what our source is
     if(self.element.getAttribute('data-photo-src')) {
-      self._isPhoto = true;
-      THREE.ImageUtils.crossOrigin = self.options.crossOrigin;
-      self._texture = THREE.ImageUtils.loadTexture( $(self.element).attr('data-photo-src') );
-      createAnimation();
+      self._isPhoto = true
+      THREE.ImageUtils.crossOrigin = self.options.crossOrigin
+      self._texture = THREE.ImageUtils.loadTexture(self.element.getAttribute('data-photo-src'))
+      createAnimation()
     } else {
-      self._isVideo = true;
+      self._isVideo = true
 
       // create loading overlay
       let loadingElem = document.createElement('div')
@@ -255,8 +255,7 @@ const ThreeSixty = (THREE, Detector, window, document, undefined) => {
 
   const createControls = () => {
     let playPauseControl = self.options.autoplay ? 'fa-pause' : 'fa-play',
-        controlsElem = document.createElement('div'),
-        timeTooltipElem = document.createElement('div')
+        controlsElem = document.createElement('div')
 
     if (controlsElem.classList)
       controlsElem.classList.add('controlsWrapper')
@@ -274,15 +273,6 @@ const ThreeSixty = (THREE, Detector, window, document, undefined) => {
       </div>`
 
     self.element.appendChild(controlsElem)
-
-    if (timeTooltipElem.classList)
-      timeTooltipElem.classList.add('timeTooltip')
-    else
-      timeTooltipElem.className += ' ' + 'timeTooltip'
-
-    timeTooltipElem.innerHTML = '00:00'
-
-    self.element.appendChild(timeTooltipElem)
 
     // hide controls if option is set
     if(self.options.hideControls) {
@@ -312,10 +302,6 @@ const ThreeSixty = (THREE, Detector, window, document, undefined) => {
         self.element.focus()
       },false)
     }
-
-    self.element.querySelectorAll('.controlsWrapper > .progress-bar')[0].addEventListener("click", onProgressClick.bind(self), false)
-    self.element.querySelectorAll('.controlsWrapper > .progress-bar')[0].addEventListener("mousemove", onProgressMouseMove.bind(self), false)
-    self.element.querySelectorAll('.controlsWrapper > .progress-bar')[0].addEventListener("mouseout", onProgressMouseOut.bind(self), false)
 
     window.onresize = () => {
       self.resizeGL(self.element.offsetWidth, self.element.offsetHeight)
@@ -384,31 +370,11 @@ const ThreeSixty = (THREE, Detector, window, document, undefined) => {
 
   const onProgressClick = (event) => {
     if(self._isVideo && self._video.readyState === self._video.HAVE_ENOUGH_DATA) {
-      let percent =  self.relativeX / $(self.element).find('canvas').width() * 100
+      let percent =  self.relativeX / self.element.querySelectorAll('canvas').offsetWidth * 100
       self.element.querySelectorAll('.controlsWrapper > .progress-bar')[0].children[0].setAttribute("style", "width:" + percent + "%;")
       self.element.querySelectorAll('.controlsWrapper > .progress-bar')[0].children[1].setAttribute("style", "width:" + (100 - percent) + "%;")
       self._video.currentTime = self._video.duration * percent / 100
     }
-  }
-
-  const onProgressMouseMove = (event) => {
-    let percent =  self.relativeX / self.element.querySelectorAll('canvas').offsetWidth * 100
-    if (percent) {
-      let tooltip = self.element.querySelectorAll('.timeTooltip'),
-          tooltipLeft = (self.relativeX - (tooltip.width()/2))
-      tooltipLeft = tooltipLeft <0? 0:Math.min(tooltipLeft,self.element.querySelectorAll('canvas').offsetWidth - tooltip.offsetWidth);
-      tooltip.style.left = tooltipLeft + 'px'
-      tooltip.style.display = ''
-
-      let time = (percent / 100) * self._video.duration,
-          timeMin = Math.floor(time / 60),
-          timeSec = Math.floor(time - (timeMin * 60))
-      tooltip.innerHTML = (timeMin + ':' + (timeSec < 10 ? '0' + timeSec : timeSec))
-    }
-  }
-
-  const onProgressMouseOut = (event) => {
-    self.element.querySelectorAll('.timeTooltip').style.display = 'none'
   }
 
   const onMouseUp = (event) => {
