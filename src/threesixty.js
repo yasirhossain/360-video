@@ -1,5 +1,5 @@
 // TODO strip out options
-// TODO get rid of bind issues
+
 const ThreeSixty = (THREE, Detector, window, document, undefined) => {
   // undefined is used here as the undefined global
   // variable in ECMAScript 3 and is mutable (i.e. it can
@@ -224,7 +224,7 @@ const ThreeSixty = (THREE, Detector, window, document, undefined) => {
       xhr.responseType = 'blob'
       xhr.onload = function (e) {
         if (e.srcElement.status === 200) {
-          let vid = (window.webkitURL ? webkitURL : URL).createObjectURL(e.srcElement.response)
+          let vid = URL.createObjectURL(e.srcElement.response)
           //Video Play Listener, fires after video loads
           self._video.addEventListener("canplaythrough", () => {
             if (self.options.autoplay === true) {
