@@ -1,3 +1,5 @@
+import THREE from './three'
+
 // TODO strip out options
 // TODO see if you can remove need for window / document by using attach to pass elements only
 
