@@ -5,14 +5,12 @@ module.exports = {
   devtool: 'source-map',
 
   entry: [
-    './src/three',
-    './src/threesixty',
-    './src/index'
+    './src/threesixty'
   ],
 
   output: {
     path: path.join(__dirname, 'dist/public'),
-    filename: 'bundle.js',
+    filename: 'threesixty.js',
     libraryTarget: 'var',
     library: 'ThreeSixty',
     publicPath: '/dist/public/'

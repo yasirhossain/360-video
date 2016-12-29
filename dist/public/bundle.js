@@ -3917,21 +3917,6 @@ var ThreeSixty =
 	    parent.appendChild(element);
 	  }
 	};
-	
-	var ts = new _threesixty2.default(_three2.default, Detector, window, document, undefined);
-	
-	var div = document.querySelectorAll('.threesixty')[0],
-	    vid = div.querySelectorAll('video')[0],
-	    w = Math.max(document.documentElement.clientWidth, window.innerWidth || 0),
-	    h = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
-	
-	div.style.width = w;
-	div.style.height = h;
-	
-	ts.attachContainer(div);
-	ts.attachVideo(vid);
-	
-	vid.muted = true;
 
 /***/ }
 /******/ ]);
