@@ -1,7 +1,14 @@
-import THREE from './three'
+/* TODO
+   1. strip out options
+   2. see if you can remove need for window / document by using attach to pass elements only
+   3. styalize loading functionality
+   4. discuss and design attach strategy (do you want to attach container and pass video source,
+   to create child canvas / video elements, or pass video element and create parent wrapper and canvas)
+   5. abstract yaw / pitch / roll events from mouse and key bindings
+   6. see if you can strip out parts of three.js that are unneeded to 360 video (weighty file)
+*/
 
-// TODO strip out options
-// TODO see if you can remove need for window / document by using attach to pass elements only
+import THREE from './three'
 
 const ThreeSixty = (THREE, window, document) => {
   let self = {},
